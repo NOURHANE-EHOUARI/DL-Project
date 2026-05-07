@@ -1,0 +1,76 @@
+# ============================================================
+# Ablation Study Config
+# experiments/configs/ablation.yaml
+# Owner: Student A
+# ============================================================
+# Defines all ablation conditions from Part 6 of the blueprint.
+# Run: python -m src.evaluation.ablation --config experiments/configs/ablation.yaml
+# ============================================================
+
+base_config: "experiments/configs/mtl_arabert_v2.yaml"
+
+conditions:
+
+  # --- Condition 1: MTL vs Single-Task ---
+  - name: "single_task_ner_only"
+    description: "AraBERT v2 + NER head only (no MTL)"
+    overrides:
+      training.tasks: ["ner"]
+
+  - name: "single_task_pos_only"
+    description: "AraBERT v2 + POS head only (no MTL)"
+    overrides:
+      training.tasks: ["pos"]
+
+  - name: "single_task_coref_only"
+    description: "AraBERT v2 + Coref head only (no MTL)"
+    overrides:
+      training.tasks: ["coref"]
+
+  - name: "mtl_all_tasks"
+    description: "Full MTL — AraBERT v2 + all three heads (BASELINE)"
+    overrides: {}
+
+  # --- Condition 2: Backbone Comparison ---
+  - name: "backbone_camelbert_mix"
+    description: "MTL with CAMeLBERT-Mix backbone"
+    overrides:
+      model.backbone: "camelbert-mix"
+
+  - name: "backbone_xlmr_large"
+    description: "MTL with XLM-R Large backbone"
+    overrides:
+      model.backbone: "xlm-r"
+
+  # --- Condition 3: Morphological Features ---
+  - name: "no_morphology"
+    description: "MTL without Farasa morphological feature injection"
+    overrides:
+      model.pos_head.use_morphological_features: false
+      model.ner_head.use_morphological_features: false
+
+  # --- Condition 4: Loss Weighting ---
+  - name: "fixed_equal_weights"
+    description: "MTL with fixed equal loss weights (no uncertainty weighting)"
+    overrides:
+      training.loss_weighting.strategy: "fixed"
+      training.loss_weighting.fixed_weights:
+        ner: 1.0
+        pos: 1.0
+        coref: 1.0
+
+  # --- Condition 5: Data Efficiency ---
+  - name: "data_50pct"
+    description: "MTL with 50% of training data"
+    overrides:
+      data.train_fraction: 0.5
+
+  - name: "data_25pct"
+    description: "MTL with 25% of training data"
+    overrides:
+      data.train_fraction: 0.25
+
+report:
+  output_dir: "experiments/ablation_results"
+  format: "latex"          # "latex" | "markdown" | "csv"
+  primary_metric: "ner/overall_f1"
