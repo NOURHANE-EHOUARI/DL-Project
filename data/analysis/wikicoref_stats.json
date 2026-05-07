@@ -1,0 +1,12 @@
+{
+  "dataset": "WikiCoref",
+  "task": "coreference",
+  "splits": {
+    "sample.arabic.v4_gold_conll": {
+      "documents": 1,
+      "tokens": 8,
+      "mentions": 3,
+      "chains": 2
+    }
+  }
+}

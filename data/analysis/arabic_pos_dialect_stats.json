@@ -1,0 +1,113 @@
+{
+  "dataset": "QCRI Arabic POS Dialect",
+  "task": "POS Tagging",
+  "source": "QCRI/arabic_pos_dialect (HuggingFace)",
+  "dialects": {
+    "egy": "Egyptian",
+    "glf": "Gulf",
+    "lev": "Levantine",
+    "mgr": "Maghrebi"
+  },
+  "total_sentences": 1400,
+  "total_tokens": 27869,
+  "format": "word TAB pos_tag TAB segmentation",
+  "note": "Includes morphological segmentation — useful for feature injection",
+  "per_dialect": {
+    "egy": {
+      "dialect": "Egyptian",
+      "sentences": 350,
+      "tokens": 7481,
+      "unique_pos": 137,
+      "top_pos_tags": {
+        "NOUN": 797,
+        "PUNC": 748,
+        "PART": 729,
+        "V": 462,
+        "PREP": 393,
+        "ADJ": 388,
+        "DET+NOUN": 352,
+        "NOUN+NSUFF": 310,
+        "NOUN+PRON": 304,
+        "PRON": 297,
+        "V+PRON": 261,
+        "ADJ+NSUFF": 191,
+        "PROG_PART+V": 179,
+        "CONJ": 175,
+        "PREP+PRON": 143
+      },
+      "avg_sent_len": 21.37
+    },
+    "glf": {
+      "dialect": "Gulf",
+      "sentences": 350,
+      "tokens": 6767,
+      "unique_pos": 145,
+      "top_pos_tags": {
+        "PUNC": 935,
+        "NOUN": 783,
+        "PART": 644,
+        "V": 635,
+        "NOUN+PRON": 393,
+        "V+PRON": 383,
+        "DET+NOUN": 364,
+        "PREP": 274,
+        "ADJ": 271,
+        "NOUN+NSUFF": 183,
+        "PRON": 144,
+        "PREP+PRON": 137,
+        "DET+NOUN+NSUFF": 89,
+        "CONJ": 81,
+        "ADJ+NSUFF": 76
+      },
+      "avg_sent_len": 19.33
+    },
+    "lev": {
+      "dialect": "Levantine",
+      "sentences": 350,
+      "tokens": 7221,
+      "unique_pos": 150,
+      "top_pos_tags": {
+        "NOUN": 946,
+        "PUNC": 813,
+        "PART": 651,
+        "V": 445,
+        "NOUN+PRON": 346,
+        "DET+NOUN": 346,
+        "V+PRON": 271,
+        "PREP": 242,
+        "ADJ": 238,
+        "NOUN+NSUFF": 182,
+        "PROG_PART+V": 175,
+        "PRON": 156,
+        "MENTION": 137,
+        "PREP+PRON": 135,
+        "DET+NOUN+NSUFF": 128
+      },
+      "avg_sent_len": 20.63
+    },
+    "mgr": {
+      "dialect": "Maghrebi",
+      "sentences": 350,
+      "tokens": 6400,
+      "unique_pos": 138,
+      "top_pos_tags": {
+        "NOUN": 914,
+        "PART": 503,
+        "V": 434,
+        "V+PRON": 430,
+        "PUNC": 336,
+        "DET+NOUN": 323,
+        "PREP": 266,
+        "HASH": 260,
+        "NOUN+NSUFF": 257,
+        "EMOT": 231,
+        "NOUN+PRON": 201,
+        "CONJ": 200,
+        "MENTION": 188,
+        "PRON": 168,
+        "PREP+PRON": 157
+      },
+      "avg_sent_len": 18.29
+    }
+  }
+}

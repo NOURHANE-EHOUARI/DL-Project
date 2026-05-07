@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+*.pth
+*.pt
+*.onnx
+data/raw/
+*.egg-info/
+.DS_Store
+.ipynb_checkpoints/
+wandb/
+mlruns/
+*.log
