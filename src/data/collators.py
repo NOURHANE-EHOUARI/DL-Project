@@ -1,6 +1,5 @@
 """
 collators.py — MTL Batch Collators for Arabic NLP
-Owner: Student B (Hiba)
 Phase: 2 — Preprocessing & Infrastructure (Week 2–3)
 
 Handles dynamic padding and batch construction for:
@@ -13,7 +12,9 @@ backbone to receive batches from different tasks during training.
 
 from __future__ import annotations
 
+import logging
 import random
+from collections import Counter
 from dataclasses import dataclass
 from typing import Any, Optional
 
@@ -21,17 +22,46 @@ import torch
 from torch.nn.utils.rnn import pad_sequence
 from transformers import PreTrainedTokenizerFast
 
+logger = logging.getLogger(__name__)
+
+IGNORE_INDEX = -100  # standard PyTorch ignore index for CrossEntropyLoss
+
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Base padding utility
+# Internal padding helper
 # ══════════════════════════════════════════════════════════════════════════════
 
-def pad_tensor_list(
-    tensors: list[torch.Tensor],
-    padding_value: int = 0,
+def _pad_sequences(
+    sequences: list[torch.Tensor],
+    pad_value: int,
+    pad_to_multiple_of: Optional[int] = None,
 ) -> torch.Tensor:
-    """Pad a list of 1D tensors to the same length."""
-    return pad_sequence(tensors, batch_first=True, padding_value=padding_value)
+    """Pad a list of 1D tensors to the same length.
+
+    Args:
+        sequences:          List of 1D tensors of varying lengths.
+        pad_value:          Value used for padding.
+        pad_to_multiple_of: If set, pads to the next multiple of this value.
+                            Useful for Tensor Core efficiency (multiples of 8).
+
+    Returns:
+        Padded tensor of shape (batch_size, max_len).
+    """
+    padded = pad_sequence(sequences, batch_first=True, padding_value=pad_value)
+
+    if pad_to_multiple_of is not None:
+        current_len = padded.size(1)
+        remainder = current_len % pad_to_multiple_of
+        if remainder != 0:
+            pad_len = pad_to_multiple_of - remainder
+            padding = torch.full(
+                (padded.size(0), pad_len),
+                fill_value=pad_value,
+                dtype=padded.dtype,
+            )
+            padded = torch.cat([padded, padding], dim=1)
+
+    return padded
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -50,28 +80,26 @@ class NERCollator:
     ignores padding positions automatically.
     """
     tokenizer: PreTrainedTokenizerFast
-    ignore_index: int = -100
+    pad_to_multiple_of: Optional[int] = None  # e.g. 8 for Tensor Core efficiency
 
     def __call__(
         self, batch: list[dict[str, torch.Tensor]]
     ) -> dict[str, torch.Tensor]:
-        input_ids      = pad_tensor_list([b["input_ids"] for b in batch],
-                                         self.tokenizer.pad_token_id)
-        attention_mask = pad_tensor_list([b["attention_mask"] for b in batch], 0)
-        ner_labels     = pad_tensor_list([b["ner_labels"] for b in batch],
-                                         self.ignore_index)
+        input_ids      = [b["input_ids"] for b in batch]
+        attention_mask = [b["attention_mask"] for b in batch]
+        ner_labels     = [b["ner_labels"] for b in batch]
 
         result = {
-            "input_ids":      input_ids,
-            "attention_mask": attention_mask,
-            "ner_labels":     ner_labels,
+            "input_ids":      _pad_sequences(input_ids, self.tokenizer.pad_token_id, self.pad_to_multiple_of),
+            "attention_mask": _pad_sequences(attention_mask, 0, self.pad_to_multiple_of),
+            "ner_labels":     _pad_sequences(ner_labels, IGNORE_INDEX, self.pad_to_multiple_of),
             "task":           "ner",
         }
 
         # token_type_ids — only if model uses them (e.g. BERT, not RoBERTa)
         if "token_type_ids" in batch[0]:
-            result["token_type_ids"] = pad_tensor_list(
-                [b["token_type_ids"] for b in batch], 0)
+            result["token_type_ids"] = _pad_sequences(
+                [b["token_type_ids"] for b in batch], 0, self.pad_to_multiple_of)
 
         return result
 
@@ -86,30 +114,29 @@ class POSCollator:
     Collator for Arabic POS tagging batches.
 
     Identical structure to NERCollator but uses pos_labels.
-    Kept separate so each task head receives clearly named tensors.
+    Kept separate so each task head receives clearly named tensors,
+    and to allow task-specific extensions (e.g. morphological features).
     """
     tokenizer: PreTrainedTokenizerFast
-    ignore_index: int = -100
+    pad_to_multiple_of: Optional[int] = None
 
     def __call__(
         self, batch: list[dict[str, torch.Tensor]]
     ) -> dict[str, torch.Tensor]:
-        input_ids      = pad_tensor_list([b["input_ids"] for b in batch],
-                                         self.tokenizer.pad_token_id)
-        attention_mask = pad_tensor_list([b["attention_mask"] for b in batch], 0)
-        pos_labels     = pad_tensor_list([b["pos_labels"] for b in batch],
-                                         self.ignore_index)
+        input_ids      = [b["input_ids"] for b in batch]
+        attention_mask = [b["attention_mask"] for b in batch]
+        pos_labels     = [b["pos_labels"] for b in batch]
 
         result = {
-            "input_ids":      input_ids,
-            "attention_mask": attention_mask,
-            "pos_labels":     pos_labels,
+            "input_ids":      _pad_sequences(input_ids, self.tokenizer.pad_token_id, self.pad_to_multiple_of),
+            "attention_mask": _pad_sequences(attention_mask, 0, self.pad_to_multiple_of),
+            "pos_labels":     _pad_sequences(pos_labels, IGNORE_INDEX, self.pad_to_multiple_of),
             "task":           "pos",
         }
 
         if "token_type_ids" in batch[0]:
-            result["token_type_ids"] = pad_tensor_list(
-                [b["token_type_ids"] for b in batch], 0)
+            result["token_type_ids"] = _pad_sequences(
+                [b["token_type_ids"] for b in batch], 0, self.pad_to_multiple_of)
 
         return result
 
@@ -131,26 +158,27 @@ class CoreferenceCollator:
     since lengths vary per example.
     """
     tokenizer: PreTrainedTokenizerFast
+    pad_to_multiple_of: Optional[int] = None
 
     def __call__(
         self, batch: list[dict[str, Any]]
     ) -> dict[str, Any]:
-        input_ids      = pad_tensor_list([b["input_ids"] for b in batch],
-                                         self.tokenizer.pad_token_id)
-        attention_mask = pad_tensor_list([b["attention_mask"] for b in batch], 0)
+        input_ids      = [b["input_ids"] for b in batch]
+        attention_mask = [b["attention_mask"] for b in batch]
 
         result = {
-            "input_ids":      input_ids,
-            "attention_mask": attention_mask,
-            # Clusters kept as list — variable structure per example
-            "clusters":       [b["clusters"] for b in batch],
-            "sentence_map":   [b["sentence_map"] for b in batch],
+            "input_ids":      _pad_sequences(input_ids, self.tokenizer.pad_token_id, self.pad_to_multiple_of),
+            "attention_mask": _pad_sequences(attention_mask, 0, self.pad_to_multiple_of),
+            # Clusters and sentence_map stay as lists — the coref head
+            # iterates over the batch dimension anyway (span enumeration is O(n²))
+            "clusters":       [b["clusters"] for b in batch],      # list[list[list[int]]]
+            "sentence_map":   [b["sentence_map"] for b in batch],  # list[list[int | None]]
             "task":           "coref",
         }
 
         if "token_type_ids" in batch[0]:
-            result["token_type_ids"] = pad_tensor_list(
-                [b["token_type_ids"] for b in batch], 0)
+            result["token_type_ids"] = _pad_sequences(
+                [b["token_type_ids"] for b in batch], 0, self.pad_to_multiple_of)
 
         return result
 
@@ -173,29 +201,31 @@ class MTLCollator:
       3. Adds a 'task' key so the MTL training loop knows which
          head to activate and which loss to compute.
 
-    Task sampling strategies supported:
-      - 'proportional': sample tasks proportionally to dataset size
-      - 'uniform': sample tasks with equal probability
-      - 'round_robin': cycle through tasks in fixed order
+    The batch dict always contains:
+        - "task": str ("ner" | "pos" | "coref")
+        - "input_ids", "attention_mask": padded tensors
+        - "token_type_ids": padded tensor (if present in dataset)
+        - task-specific labels: "ner_labels" | "pos_labels" | "clusters"
 
     Usage in training loop:
         collator = MTLCollator(tokenizer)
-        # Each DataLoader uses the same collator
-        ner_loader = DataLoader(ner_dataset, collate_fn=collator)
-        pos_loader = DataLoader(pos_dataset, collate_fn=collator)
+        ner_loader   = DataLoader(ner_dataset,   collate_fn=collator)
+        pos_loader   = DataLoader(pos_dataset,   collate_fn=collator)
+        coref_loader = DataLoader(coref_dataset, collate_fn=collator)
     """
-    tokenizer:    PreTrainedTokenizerFast
-    ignore_index: int = -100
+    tokenizer:          PreTrainedTokenizerFast
+    pad_to_multiple_of: Optional[int] = None
 
-    def __post_init__(self):
-        self._ner_collator   = NERCollator(self.tokenizer, self.ignore_index)
-        self._pos_collator   = POSCollator(self.tokenizer, self.ignore_index)
-        self._coref_collator = CoreferenceCollator(self.tokenizer)
+    def __post_init__(self) -> None:
+        self._ner_collator   = NERCollator(self.tokenizer, self.pad_to_multiple_of)
+        self._pos_collator   = POSCollator(self.tokenizer, self.pad_to_multiple_of)
+        self._coref_collator = CoreferenceCollator(self.tokenizer, self.pad_to_multiple_of)
 
     def __call__(
         self, batch: list[dict[str, Any]]
     ) -> dict[str, Any]:
         # Detect task from keys in first example
+        # (all examples in a batch share the same task)
         first = batch[0]
 
         if "ner_labels" in first:
@@ -306,22 +336,18 @@ class MTLBatchSampler:
         """Return expected proportion of batches per task."""
         if self.strategy == "proportional":
             return dict(self.weights)
-        elif self.strategy == "uniform":
-            return {t: 1.0 / len(self.tasks) for t in self.tasks}
         else:
             return {t: 1.0 / len(self.tasks) for t in self.tasks}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Quick test
+# Quick smoke test
 # ══════════════════════════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
     print("\n── MTLBatchSampler test ────────────────────────────────")
 
-    from collections import Counter
-
-    sizes    = {"ner": 3525, "pos": 1530, "coref": 100}
+    sizes      = {"ner": 3525, "pos": 1530, "coref": 100}
     strategies = ["proportional", "uniform", "round_robin"]
 
     for strategy in strategies:

@@ -1,0 +1,94 @@
+# experiments/configs/base.yaml
+# ─────────────────────────────────────────────────────────────
+# Base configuration — shared by all experiments.
+# Override individual keys in task-specific or sweep configs.
+# ─────────────────────────────────────────────────────────────
+
+project:
+  name: arabic-nlp-project
+  seed: 42
+  device: cuda          # "cpu" for local testing without GPU
+
+# ── Backbone ──────────────────────────────────────────────────
+backbone:
+  name: aubmindlab/bert-base-arabertv2   # AraBERT v2 (default)
+  # name: CAMeL-Lab/bert-base-camelbert-mix  # CAMeLBERT-Mix (alt)
+  # name: xlm-roberta-large                  # XLM-R (multilingual ablation)
+  freeze: false          # true = feature extraction only (faster prototyping)
+  hidden_dropout: 0.1
+  attention_dropout: 0.1
+
+# ── NER Head ──────────────────────────────────────────────────
+ner:
+  lstm_hidden: 256
+  lstm_layers: 1
+  dropout: 0.1
+  use_morphology: false  # set true when Farasa features are ready
+
+# ── POS Head ──────────────────────────────────────────────────
+pos:
+  hidden_size: 256
+  dropout: 0.1
+  use_morphology: false
+
+# ── Coref Head ────────────────────────────────────────────────
+coref:
+  max_span_width: 10
+  ffnn_hidden: 1000
+  ffnn_depth: 2
+  dropout: 0.3
+  max_top_antecedents: 50
+  max_training_sentences: 11
+
+# ── Multi-Task Loss ───────────────────────────────────────────
+loss:
+  strategy: uncertainty   # "uncertainty" (Kendall) | "fixed"
+  fixed_weights:          # only used when strategy: fixed
+    ner: 1.0
+    pos: 1.0
+    coref: 1.0
+  init_sigma: 1.0         # initial σ for uncertainty weighting
+
+# ── Training ──────────────────────────────────────────────────
+training:
+  epochs: 20
+  batch_size: 32
+  coref_batch_size: 8     # coref needs smaller batches (span enumeration)
+  gradient_accumulation: 2
+  max_grad_norm: 1.0
+  eval_every_n_steps: 500
+  save_best_metric: ner_f1  # checkpoint criterion
+
+# ── Optimizer ─────────────────────────────────────────────────
+optimizer:
+  type: adamw
+  learning_rate: 2.0e-5
+  backbone_lr_multiplier: 0.1   # backbone LR = lr * multiplier (layer-wise decay)
+  weight_decay: 0.01
+  eps: 1.0e-8
+
+# ── LR Scheduler ──────────────────────────────────────────────
+scheduler:
+  type: cosine_with_warmup
+  warmup_ratio: 0.1       # 10% of total steps for warmup
+
+# ── Data ──────────────────────────────────────────────────────
+data:
+  ner_train: data/processed/ner/train.jsonl
+  ner_dev:   data/processed/ner/dev.jsonl
+  ner_test:  data/processed/ner/test.jsonl
+  pos_train: data/processed/pos/train.jsonl
+  pos_dev:   data/processed/pos/dev.jsonl
+  pos_test:  data/processed/pos/test.jsonl
+  coref_train: data/processed/coref/train.jsonl
+  coref_dev:   data/processed/coref/dev.jsonl
+  coref_test:  data/processed/coref/test.jsonl
+  max_seq_len: 512
+  num_workers: 4
+
+# ── W&B ───────────────────────────────────────────────────────
+wandb:
+  project: arabic-nlp-project
+  entity: null            # your W&B username or team name
+  tags: [baseline]
+  log_every_n_steps: 50
