@@ -1,0 +1,101 @@
+# ============================================================
+# MTL Training Config — AraBERT v2
+# experiments/configs/mtl_arabert_v2.yaml
+# Owner: Student A
+# ============================================================
+
+experiment:
+  name: "mtl_arabert_v2"
+  seed: 42
+  output_dir: "checkpoints/mtl_arabert_v2"
+
+# --- Model ---
+model:
+  backbone: "arabert-v2"                         # key from SUPPORTED_BACKBONES
+  backbone_dropout: 0.1
+  freeze_backbone: false
+  gradient_checkpointing: true
+
+  ner_head:
+    lstm_hidden: 256
+    lstm_layers: 1
+    dropout: 0.2
+    num_labels: 9                                # IOB2: O + B/I for PER,ORG,LOC,MISC
+
+  pos_head:
+    dropout: 0.1
+    # num_labels set dynamically from PATB tagset
+
+  coref_head:
+    max_span_width: 30
+    top_span_ratio: 0.4
+    ffnn_depth: 2
+    ffnn_hidden: 1000
+    dropout: 0.3
+
+# --- Data ---
+data:
+  train_ner: "data/processed/ner_train.jsonl"
+  dev_ner: "data/processed/ner_dev.jsonl"
+  test_ner: "data/processed/ner_test.jsonl"
+
+  train_pos: "data/processed/pos_train.jsonl"
+  dev_pos: "data/processed/pos_dev.jsonl"
+  test_pos: "data/processed/pos_test.jsonl"
+
+  train_coref: "data/processed/coref_train.jsonl"
+  dev_coref: "data/processed/coref_dev.jsonl"
+  test_coref: "data/processed/coref_test.jsonl"
+
+  max_length: 512
+
+# --- Training ---
+training:
+  epochs: 20
+  batch_size: 16
+  gradient_accumulation_steps: 2               # effective batch = 32
+  max_grad_norm: 1.0
+
+  optimizer:
+    name: "adamw"
+    learning_rate: 2.0e-5
+    weight_decay: 0.01
+    eps: 1.0e-8
+
+  scheduler:
+    name: "cosine_with_warmup"
+    warmup_ratio: 0.06                          # 6% of total steps for warmup
+
+  loss_weighting:
+    strategy: "uncertainty"                     # "uncertainty" | "fixed" | "equal"
+    # fixed weights used only when strategy = "fixed"
+    fixed_weights:
+      ner: 1.0
+      pos: 1.0
+      coref: 1.0
+
+  # Task sampling strategy during MTL training
+  task_sampling:
+    strategy: "proportional"                    # "proportional" | "uniform" | "annealed"
+    # proportional = sample in proportion to dataset sizes
+
+  early_stopping:
+    monitor: "dev_ner_f1"
+    patience: 5
+    min_delta: 0.001
+
+# --- Evaluation ---
+evaluation:
+  eval_every_n_steps: 500
+  save_best_only: true
+  metrics:
+    ner: ["entity_f1", "per_type_f1"]
+    pos: ["token_accuracy", "per_tag_accuracy"]
+    coref: ["muc_f1", "bcubed_f1", "ceafe_f1", "avg_f1"]
+
+# --- Weights & Biases ---
+wandb:
+  project: "arabic-nlp-mtl"
+  tags: ["mtl", "arabert-v2", "ner", "pos", "coref"]
+  log_gradients: false
+  log_model: true
