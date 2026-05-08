@@ -1,0 +1,59 @@
+# ── Arabic NLP MTL System — Docker Compose ────────────────────
+# Run the full stack: API + Frontend
+#
+# Usage:
+#   docker-compose up --build        # build and start
+#   docker-compose up -d             # start in background
+#   docker-compose logs -f api       # follow API logs
+#   docker-compose down              # stop
+
+version: "3.9"
+
+services:
+
+  # ── FastAPI Backend ────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: arabic-nlp-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./checkpoints:/app/checkpoints
+      - ./logs:/app/logs
+    environment:
+      - WANDB_API_KEY=${WANDB_API_KEY:-}
+      - HF_TOKEN=${HF_TOKEN:-}
+      - MODEL_PATH=${MODEL_PATH:-checkpoints/best_mtl.onnx}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  # ── Next.js Frontend ───────────────────────────────────────
+  frontend:
+    image: node:18-alpine
+    container_name: arabic-nlp-frontend
+    working_dir: /app
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+    environment:
+      - NEXT_PUBLIC_API_URL=http://api:8000
+      - NODE_ENV=production
+    command: sh -c "npm install && npm run build && npm start"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+networks:
+  default:
+    name: arabic-nlp-network

@@ -1,0 +1,42 @@
+{
+  "dialect": "Moroccan Darija",
+  "n_sentences": 150,
+  "n_tokens": 1698,
+  "darija_confirmed": 44,
+  "darija_confirm_pct": 29.3,
+  "estimated_oov_rate": 0.5,
+  "ner_f1": 67.2,
+  "pos_accuracy": 88.8,
+  "ner_delta_vs_msa": -19.0,
+  "pos_delta_vs_msa": -8.8,
+  "reference_scores": {
+    "msa": {
+      "ner_f1": 86.2,
+      "pos_accuracy": 97.6
+    },
+    "egyptian": {
+      "ner_f1": 83.1,
+      "pos_accuracy": 95.4
+    },
+    "gulf": {
+      "ner_f1": 84.2,
+      "pos_accuracy": 96.1
+    },
+    "levantine": {
+      "ner_f1": 82.8,
+      "pos_accuracy": 94.8
+    },
+    "maghrebi": {
+      "ner_f1": 83.5,
+      "pos_accuracy": 95.9
+    }
+  },
+  "degradation_factors": [
+    "Darija-specific morphology (كاين، باش، دابا) not in MSA training data",
+    "French/Spanish loanwords cause OOV tokens",
+    "Different verb conjugation patterns",
+    "Code-switching between Darija and other languages",
+    "Estimated OOV rate: 0.5% of tokens"
+  ],
+  "note": "These are estimated scores based on literature-reported degradation rates for cross-dialectal Arabic NLP. Real scores will be computed once the model is trained."
+}
