@@ -1,0 +1,10 @@
+{
+  "dataset": "Moroccan Darija Wikipedia",
+  "source": "AbderrahmanSkiredj1/moroccan_darija_wikipedia_dataset",
+  "dialect": "Moroccan Darija (Maghrebi Arabic)",
+  "n_sentences": 150,
+  "n_tokens": 1698,
+  "avg_length": 11.32,
+  "purpose": "Zero-shot dialectal robustness evaluation",
+  "note": "Model tested on Darija without any Darija training data"
+}
