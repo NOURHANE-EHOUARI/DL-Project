@@ -544,7 +544,7 @@ def run_pipeline():
     # ── 4. WikiCoref → Coreference JSONL ─────────────────────────
     print(f"\n{sep}\n  4. WikiCoref → Coreference JSONL\n{sep}")
     coref_dir = RAW / "wikicoref_ar"
-    coref_files = list(coref_dir.glob("*.conll"))
+    coref_files = list(coref_dir.glob("*.conll")) + list(coref_dir.glob("*_conll"))
     if coref_files:
         # Merge all conll files then split
         all_docs = []
