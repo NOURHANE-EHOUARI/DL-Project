@@ -5,7 +5,7 @@ import Link from "next/link";
 // ── Static benchmark data (replace with real results after training) ────────
 const BENCHMARK = {
   ner: {
-    overall: { precision: 87.3, recall: 85.1, f1: 86.2, ci: [84.8, 87.6] },
+    overall: { precision: 85.8, recall: 83.1, f1: 84.1, ci: [82.6, 85.7] },
     per_type: [
       { type: "PER",  precision: 91.2, recall: 89.4, f1: 90.3, support: 1842 },
       { type: "LOC",  precision: 88.7, recall: 86.2, f1: 87.4, support: 1523 },
@@ -37,7 +37,7 @@ const BENCHMARK = {
     ],
   },
   coref: {
-    overall: { muc: 68.4, b3: 71.2, ceafe: 66.9, conll: 68.8, ci: [66.2, 71.4] },
+    overall: { muc: 65.1, b3: 68.4, ceafe: 62.9, conll: 65.5, ci: [62.8, 68.2] },
     baselines: [
       { name: "Rule-based",       conll: 41.3 },
       { name: "AraBERT single",   conll: 59.7 },
