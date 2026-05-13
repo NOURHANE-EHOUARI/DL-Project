@@ -299,7 +299,7 @@ class ArabicMTLModel(nn.Module):
 
         # ── Loss weighting ─────────────────────────────────────────────────
         if loss_weighting == "uncertainty":
-            self.loss_weighter = UncertaintyWeighter(task_names=list(TASKS))
+            self.loss_weighter = UncertaintyWeighter(tasks=list(TASKS))
             logger.info("Using Kendall uncertainty loss weighting")
         else:
             weights = fixed_weights or {"ner": 1.0, "pos": 1.0, "coref": 1.0}
@@ -704,7 +704,7 @@ if __name__ == "__main__":
             self.coref_head = CoreferenceHead(
                 hidden_size=128, max_span_width=5, antecedent_k=5
             )
-            self.loss_weighter = UncertaintyWeighter(task_names=list(TASKS))
+            self.loss_weighter = UncertaintyWeighter(tasks=list(TASKS))
 
     model = _MockMTL()
     model.eval()
