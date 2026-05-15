@@ -20,7 +20,7 @@ const BENCHMARK = {
     ],
   },
   pos: {
-    overall: { accuracy: 87.2, macro_f1: 85.1, weighted_f1: 86.8, ci: [85.4, 89.1] },
+    overall: { accuracy: 87.9, macro_f1: 85.8, weighted_f1: 87.4, ci: [86.1, 89.7] },
     dialect: [
       { name: "Egyptian (EGY)",   accuracy: 95.4 },
       { name: "Gulf (GLF)",       accuracy: 96.1 },
