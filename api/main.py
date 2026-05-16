@@ -26,6 +26,7 @@ Requirements:
 from __future__ import annotations
 
 import time
+from pathlib import Path
 import uuid
 import logging
 from contextlib import asynccontextmanager
@@ -123,8 +124,50 @@ class ErrorResponse(BaseModel):
 # ---------------------------------------------------------------------------
 # Stub inference engine
 # ---------------------------------------------------------------------------
+class RealEngine:
+    """Real MTL inference engine wrapping InferenceEngine."""
+
+    def __init__(self, checkpoint_path: str):
+        from api.inference import InferenceEngine
+        self.engine = InferenceEngine.load(checkpoint_path)
+
+    def predict(self, text: str, tasks=None, **kwargs):
+        tasks = tasks or ["ner", "pos", "coref"]
+        results = self.engine.predict_all([text])
+        r = results[0]
+
+        # NER spans
+        ner_spans = [
+            {"text": e.text, "type": e.label,
+             "start": e.start_tok, "end": e.end_tok, "score": e.score}
+            for e in r.ner
+        ]
+        # NER tokens (IOB2 style for token-level view)
+        ner_tokens = [
+            {"token": t.token, "tag": t.tag, "start": i, "end": i, "score": t.score}
+            for i, t in enumerate(r.pos)  # reuse word list
+        ]
+        # POS tokens
+        pos_tokens = [
+            {"token": t.token, "pos_tag": t.tag, "morph": None, "score": t.score}
+            for t in r.pos
+        ]
+        # Coref clusters
+        coref_clusters = [
+            {"mentions": c.mentions}
+            for c in r.coref
+        ]
+
+        return type("R", (), {
+            "ner_spans":      ner_spans,
+            "ner_tokens":     ner_tokens,
+            "pos_tokens":     pos_tokens,
+            "coref_clusters": coref_clusters,
+            "latency_ms":     r.latency_ms,
+        })()
+
 class StubEngine:
-    """Placeholder until MTL model is ready (Phase 3). Returns empty outputs."""
+    """Fallback stub if model file is missing."""
     def predict(self, text, tasks=None, **kwargs):
         words = text.split()
         return type("R", (), {
@@ -141,13 +184,21 @@ class StubEngine:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting Arabic NLP API...")
+    import os
+    checkpoint = os.environ.get(
+        "MODEL_CHECKPOINT",
+        str(Path(__file__).parent.parent / "checkpoints" / "FINAL_MODEL.pt")
+    )
     try:
-        # Replace StubEngine() with InferenceEngine.load(...) when model is ready
-        app.state.engine = StubEngine()
-        logger.info("✓ Engine ready (stub mode — replace with real model in Phase 5)")
+        if Path(checkpoint).exists():
+            app.state.engine = RealEngine(checkpoint)
+            logger.info(f"✓ Real model loaded from {checkpoint}")
+        else:
+            logger.warning(f"Checkpoint not found: {checkpoint} — using stub")
+            app.state.engine = StubEngine()
     except Exception as e:
-        logger.warning(f"Engine load failed: {e}")
-        app.state.engine = None
+        logger.warning(f"Engine load failed: {e} — using stub")
+        app.state.engine = StubEngine()
     yield
     logger.info("API shutdown")
 
