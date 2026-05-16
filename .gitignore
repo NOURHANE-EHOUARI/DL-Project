@@ -15,3 +15,5 @@ checkpoints/FINAL_MODEL.pt
 checkpoints/*.pt
 checkpoints/FINAL_MODEL.pt
 checkpoints/*.pt
+checkpoints/FINAL_MODEL.pt
+checkpoints/*.pt
