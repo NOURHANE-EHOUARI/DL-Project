@@ -11,3 +11,5 @@ data/raw/
 wandb/
 mlruns/
 *.log
+checkpoints/FINAL_MODEL.pt
+checkpoints/*.pt
