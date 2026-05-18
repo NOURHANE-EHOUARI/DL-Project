@@ -265,11 +265,11 @@ async def health(request: Request):
 async def models_info():
     return ModelsResponse(models=[{
         "id": "arabert-v2-mtl",
-        "backbone": "aubmindlab/bert-base-arabertv2",
+        "backbone": "aubmindlab/bert-base-arabertv02",
         "tasks": ["ner", "pos", "coref"],
-        "ner_f1": 0.856,
-        "pos_accuracy": 0.963,
-        "coref_avg_f1": 0.612,
+        "ner_f1": 0.8487,
+        "pos_accuracy": 0.9706,
+        "coref_avg_f1": 0.6715,
     }])
 
 

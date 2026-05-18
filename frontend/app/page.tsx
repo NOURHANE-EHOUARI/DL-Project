@@ -38,7 +38,7 @@ function makeStub(text: string): Result {
         { text: tokens[Math.min(4, tokens.length-1)], start: Math.min(4, tokens.length-1), end: Math.min(4, tokens.length-1) },
       ],
     }] : [] },
-    latency_ms: 38.4,
+    latency_ms: 0,
   };
 }
 
@@ -170,7 +170,7 @@ export default function Home() {
         }}>
           <i className="bi bi-stars" style={{ fontSize: 13, color: '#C084FC' }} />
           <span style={{ fontSize: 12, color: '#C084FC', fontWeight: 600, letterSpacing: '0.08em' }}>
-            DEEP LEARNING PROJECT · 2025–2026
+            NER · POT · Coreference Resolution 
           </span>
         </div>
 
@@ -186,7 +186,7 @@ export default function Home() {
           fontSize: 16, color: '#9994B8', maxWidth: 520,
           margin: '0 auto 48px', lineHeight: 1.7,
         }}>
-          Named Entity Recognition · Part-of-Speech Tagging · Coreference Resolution —
+          Named Entity Recognition · Part-of-Speech Tagging · Coreference Resolution ...
           powered by a shared AraBERT v2 backbone with uncertainty-weighted MTL loss.
         </p>
 
@@ -339,11 +339,9 @@ export default function Home() {
         color: '#9994B8', fontSize: 12,
       }}>
         <i className="bi bi-cpu" style={{ marginRight: 8, color: '#7C3AED' }} />
-        Arabic NLP MTL System ·{' '}
         <span className="grad-text" style={{ fontWeight: 700 }}>
-          Final Year Deep Learning Project 2025–2026
+         Arabic NLP MTL System ·{' '}
         </span>
-        {' '}· Student B: Hiba El Ouazi
       </footer>
     </main>
   );
