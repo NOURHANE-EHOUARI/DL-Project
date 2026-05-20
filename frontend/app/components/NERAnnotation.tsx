@@ -27,15 +27,23 @@ export default function NERAnnotation({ text, spans }: Props) {
   const typeCounts: Record<string, number> = {};
   spans.forEach(s => { typeCounts[s.type] = (typeCounts[s.type] || 0) + 1; });
 
+  // Build rendered nodes — one entry per "chunk" (entity span or plain token)
+  // We track which token indices we've consumed so we can insert spaces correctly.
   const rendered: React.ReactNode[] = [];
   let i = 0;
   while (i < tokens.length) {
+    if (i > 0) {
+      // Always insert an explicit space between chunks so RTL text doesn't collapse
+      rendered.push(<span key={`sp-${i}`}>{' '}</span>);
+    }
+
     if (spanMap[i]) {
       const span = spanMap[i];
       const c = COLORS[span.type] || COLORS.MISC;
       const idx = spans.indexOf(span);
+      // The entity text already contains spaces between its tokens via join
       rendered.push(
-        <span key={i} style={{ position: 'relative', display: 'inline' }}>
+        <span key={`ent-${i}`} style={{ position: 'relative', display: 'inline' }}>
           <mark
             className="ner-mark"
             style={{
@@ -44,6 +52,9 @@ export default function NERAnnotation({ text, spans }: Props) {
               color: c.text,
               boxShadow: hovered === idx ? `0 0 12px ${c.glow}` : 'none',
               transition: 'all 0.2s',
+              padding: '2px 4px',
+              borderRadius: 4,
+              cursor: 'default',
             }}
             onMouseEnter={() => setHovered(idx)}
             onMouseLeave={() => setHovered(null)}
@@ -68,8 +79,7 @@ export default function NERAnnotation({ text, spans }: Props) {
       i = span.end + 1;
     } else {
       rendered.push(
-        <span key={i} style={{ color: '#E2E0F0', margin: '0 1px',
-          fontFamily: 'Noto Naskh Arabic, serif' }}>
+        <span key={`tok-${i}`} style={{ color: '#E2E0F0', fontFamily: 'Noto Naskh Arabic, serif' }}>
           {tokens[i]}
         </span>
       );
@@ -79,13 +89,11 @@ export default function NERAnnotation({ text, spans }: Props) {
 
   return (
     <div>
-      {/* Badge */}
+      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 11, color: '#9994B8', fontWeight: 600, letterSpacing: '0.12em' }}>
-            NAMED ENTITY RECOGNITION
-          </span>
-        </div>
+        <span style={{ fontSize: 11, color: '#9994B8', fontWeight: 600, letterSpacing: '0.12em' }}>
+          NAMED ENTITY RECOGNITION
+        </span>
         <span style={{
           fontSize: 12, fontWeight: 700,
           background: 'rgba(124,58,237,0.15)',
@@ -97,16 +105,23 @@ export default function NERAnnotation({ text, spans }: Props) {
       </div>
 
       {/* Annotated text */}
-      <div dir="rtl" style={{
-        lineHeight: 2.4, fontSize: 20,
-        fontFamily: 'Noto Naskh Arabic, serif',
-        padding: '20px 24px',
-        background: 'rgba(0,0,0,0.3)',
-        borderRadius: 12,
-        border: '1px solid rgba(255,255,255,0.06)',
-        marginBottom: 20,
-        minHeight: 80,
-      }}>
+      <div
+        dir="rtl"
+        style={{
+          fontSize: 20,
+          fontFamily: 'Noto Naskh Arabic, serif',
+          lineHeight: 2.6,
+          padding: '20px 24px',
+          background: 'rgba(0,0,0,0.3)',
+          borderRadius: 12,
+          border: '1px solid rgba(255,255,255,0.06)',
+          marginBottom: 20,
+          minHeight: 80,
+          whiteSpace: 'normal',
+          wordBreak: 'break-word',
+          overflowWrap: 'break-word',
+        }}
+      >
         {spans.length === 0
           ? <span style={{ color: '#9994B8', fontSize: 16 }}>No entities detected.</span>
           : rendered}

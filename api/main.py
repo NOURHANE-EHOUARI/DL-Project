@@ -83,7 +83,7 @@ class POSResponse(BaseModel):
     text: str; tokens: list[POSToken]; latency_ms: float = 0.0
 
 class CorefMention(BaseModel):
-    text: str; sent_idx: int; start: int; end: int
+    text: str; sent_idx: int = 0; start: int = 0; end: int = 0
 
 class CorefCluster(BaseModel):
     cluster_id: int; mentions: list[CorefMention]
@@ -306,7 +306,7 @@ async def coref(body: CorefRequest, request: Request):
     return CorefResponse(
         text=body.text,
         clusters=[
-            CorefCluster(cluster_id=i, mentions=[CorefMention(**m) for m in c.get("mentions", [])])
+            CorefCluster(cluster_id=i, mentions=[CorefMention(text=m.get("text",""), sent_idx=0, start=m.get("start",0), end=m.get("end",0)) for m in c.get("mentions",[])])
             for i, c in enumerate(r.coref_clusters)
         ],
         latency_ms=r.latency_ms,
@@ -331,7 +331,7 @@ async def analyze(body: AnalyzeRequest, request: Request):
         resp.coref = CorefResponse(
             text=body.text,
             clusters=[
-                CorefCluster(cluster_id=i, mentions=[CorefMention(**m) for m in c.get("mentions", [])])
+                CorefCluster(cluster_id=i, mentions=[CorefMention(text=m.get("text",""), sent_idx=0, start=m.get("start",0), end=m.get("end",0)) for m in c.get("mentions",[])])
                 for i, c in enumerate(r.coref_clusters)
             ],
             latency_ms=r.latency_ms,

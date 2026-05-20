@@ -5,14 +5,13 @@ import NERAnnotation from "./components/NERAnnotation";
 import POSDisplay from "./components/POSDisplay";
 import CorefArcs from "./components/CorefArcs";
 import MetricsDashboard from "./components/MetricsDashboard";
-import Link from "next/link";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 interface Result {
   tokens: string[];
   ner:   { spans: { text:string; type:string; start:number; end:number }[] };
-  pos:   { tokens: { token:string; pos_tag:string; morph_category?:string }[] };
+  pos:   { tokens: { token:string; pos_tag:string; morph_category?:string; morph?:string|null }[] };
   coref: { clusters: { cluster_id:number; mentions:{text:string;start:number;end:number}[]; n_mentions:number }[] };
   latency_ms: number;
 }
@@ -67,11 +66,32 @@ export default function Home() {
       });
       if (!r.ok) throw new Error();
       const d = await r.json();
+      // Normalise API response → internal Result shape
+      const posTokens = (d.pos?.tokens || []).map((t: any) => ({
+        token: t.token,
+        pos_tag: t.pos_tag,
+        morph_category: t.morph_category || t.morph || t.pos_tag,
+      }));
+      const nerSpans = (d.ner?.spans || []).map((s: any) => ({
+        text:  s.text,
+        type:  s.type || s.label,
+        start: s.start ?? s.start_tok ?? 0,
+        end:   s.end   ?? s.end_tok   ?? 0,
+      }));
+      const corefClusters = (d.coref?.clusters || []).map((c: any) => ({
+        cluster_id: c.cluster_id ?? 0,
+        n_mentions:  c.mentions?.length ?? 0,
+        mentions: (c.mentions || []).map((m: any) => ({
+          text:  m.text,
+          start: m.start ?? 0,
+          end:   m.end   ?? 0,
+        })),
+      }));
       setResult({
         tokens: text.split(' '),
-        ner:    d.ner   || { spans: [] },
-        pos:    d.pos   || { tokens: [] },
-        coref:  d.coref || { clusters: [] },
+        ner:    { spans: nerSpans },
+        pos:    { tokens: posTokens },
+        coref:  { clusters: corefClusters },
         latency_ms: d.latency_ms || 0,
       });
     } catch {
@@ -133,16 +153,7 @@ export default function Home() {
                 {t.label}
               </span>
             ))}
-            <Link href="/results" style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                fontSize: 12, color: '#9994B8', textDecoration: 'none',
-                padding: '6px 14px', borderRadius: 10,
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
-              }}>
-                <i className="bi bi-graph-up" style={{ fontSize: 12 }} />
-                Results
-            </Link>
+
             <div style={{
               display: 'flex', alignItems: 'center', gap: 6,
               marginLeft: 8, padding: '4px 12px',
